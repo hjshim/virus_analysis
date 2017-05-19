@@ -1,0 +1,259 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+## Step 1: import allele frequency data
+```{r}
+file_name = "Ribp_UVp" # or "Ribp_UVm"
+dat <- read.csv(paste(file_name,".csv",sep=""),header=TRUE)
+
+# check coverage
+for (i in 1:10){
+  coverage <- dat[,(i*6)]
+  print(below_cov <- which(coverage<100))
+}
+# time sampled
+t=7
+```
+
+## Step 2: check for candidate trajectories (minor alleles at first sampling switches to major alleles at last sampling)
+```{r}
+# check major allele at first sampling
+max_first <- pmax(dat$P0_A,dat$P0_C,dat$P0_G,dat$P0_T,na.rm=TRUE)
+major_A <- which(dat$P0_A == max_first)
+major_C <- which(dat$P0_C == max_first)
+major_G <- which(dat$P0_G == max_first)
+major_T <- which(dat$P0_T == max_first)
+# check major allele at last sampling (is defined as minor allele if switch happens)
+max_last <- pmax(dat$P20_A,dat$P20_C,dat$P20_G,dat$P20_T,na.rm=TRUE)
+minor_A <- which(dat$P20_A == max_last)
+minor_C <- which(dat$P20_C == max_last)
+minor_G <- which(dat$P20_G == max_last)
+minor_T <- which(dat$P20_T == max_last)
+
+# check length
+length(dat[,1])
+length(major_A)+length(major_C)+length(major_G)+length(major_T)
+length(minor_A)+length(minor_C)+length(minor_G)+length(minor_T)
+
+# create data with only major and minor alleles (biallelic model)
+new_dat <- data.frame()
+colnames(dat)[41] # 7*6-1
+seq=1:7
+# Major
+Ma_A <- as.matrix(cbind(rep("A",length(major_A)),dat[major_A,seq*6-4]))
+Ma_C <- as.matrix(cbind(rep("C",length(major_C)),dat[major_C,seq*6-3]))
+Ma_G <- as.matrix(cbind(rep("G",length(major_G)),dat[major_G,seq*6-2]))
+Ma_T <- as.matrix(cbind(rep("T",length(major_T)),dat[major_T,seq*6-1]))
+colnames(Ma_A) <- NULL
+colnames(Ma_C) <- NULL
+colnames(Ma_G) <- NULL
+colnames(Ma_T) <- NULL
+new_dat <- rbind(Ma_A,Ma_C,Ma_G,Ma_T)
+new_dat_Ma <- new_dat[order(as.numeric(rownames(new_dat))),]
+# Minor
+Mi_A <- as.matrix(cbind(rep("A",length(minor_A)),dat[minor_A,seq*6-4]))
+Mi_C <- as.matrix(cbind(rep("C",length(minor_C)),dat[minor_C,seq*6-3]))
+Mi_G <- as.matrix(cbind(rep("G",length(minor_G)),dat[minor_G,seq*6-2]))
+Mi_T <- as.matrix(cbind(rep("T",length(minor_T)),dat[minor_T,seq*6-1]))
+colnames(Mi_A) <- NULL
+colnames(Mi_C) <- NULL
+colnames(Mi_G) <- NULL
+colnames(Mi_T) <- NULL
+new_dat <- rbind(Mi_A,Mi_C,Mi_G,Mi_T)
+new_dat_Mi <- new_dat[order(as.numeric(rownames(new_dat))),] # index in terms of matrix length (not position)
+
+# candidate trajectories -> minor allele becomes major
+final_dat <- cbind(dat$Position,new_dat_Ma,new_dat_Mi)
+final_dat[which(final_dat[,2]!=final_dat[,10]),]
+can_traj <- final_dat[which(final_dat[,2]!=final_dat[,10]),-(2:9)]
+matplot(t(can_traj[,3:9]),type="b",pch=1,col=1:dim(can_traj)[1],ylab="frequency",xlab="sample time points")
+legend("bottomright",legend=final_dat[which(final_dat[,2]!=final_dat[,10]),1],pch=1,col=1:dim(can_traj)[1])
+```
+
+## Step 3: define test sequence (=minor alleles at last sampling if above sequencing error, or else major alleles at last sampling) and reference sequence (=major alleles at initial sampling)
+```{r}
+# rounding to 0.5% sequencing error (sample size = 100)
+final_dat_wfabc_se <- matrix(nrow=length(dat[,1]),ncol=t+2)
+# second max at last sampling if major =! minor
+for(i in 1:length(dat[,1])){
+  if(final_dat[i,2]!=final_dat[i,10]){
+    max_last_order <- order(c(dat[i,]$P20_A,dat[i,]$P20_C,dat[i,]$P20_G,dat[i,]$P20_T),decreasing=TRUE)[1] #  max at last sampling
+    if(max_last_order==1){
+      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"A",round(dat[i,seq*6-4],digits=1)))
+    } else if(max_last_order==2){
+      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"C",round(dat[i,seq*6-3],digits=1)))
+    } else if(max_last_order==3){
+      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"G",round(dat[i,seq*6-2],digits=1)))
+    } else if(max_last_order==4){
+      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"T",round(dat[i,seq*6-1],digits=1)))
+    } 
+  } else {
+    max_last_order <- order(c(dat[i,]$P20_A,dat[i,]$P20_C,dat[i,]$P20_G,dat[i,]$P20_T),decreasing=TRUE)[2] # second max at last sampling
+    if(max_last_order==1){
+      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"A",round(dat[i,seq*6-4],digits=1)))
+    } else if(max_last_order==2){
+      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"C",round(dat[i,seq*6-3],digits=1)))
+    } else if(max_last_order==3){
+      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"G",round(dat[i,seq*6-2],digits=1)))
+    } else if(max_last_order==4){
+      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"T",round(dat[i,seq*6-1],digits=1)))
+    } 
+  }
+}
+
+# Which minor alleles are above sequencing error at the last sampling?
+echo_consensus_Ribp_test <- character()
+for(i in 1:length(dat[,1])){
+  if(final_dat_wfabc_se[i,9]>0.4){
+    echo_consensus_Ribp_test[i] <- final_dat_wfabc_se[i,2]
+  } else {
+    echo_consensus_Ribp_test[i] <- final_dat[i,2]
+  }
+}
+
+# Reference sequence = major alleles at the initial sampling
+echo_consensus_Ribp_ref <- character()
+for(i in 1:length(dat[,1])){
+  echo_consensus_Ribp_ref[i] <- final_dat[i,2]
+}
+```
+
+## Step 4: install bioconductor
+```{r}
+# general install
+source("https://bioconductor.org/biocLite.R")
+biocLite()
+biocLite("Biostrings")
+library(Biostrings)
+
+# help
+browseVignettes()
+```
+
+## Step 5: get DNA and AA sequences by protein in BioStrings
+```{r}
+# Reference DNA and AA sequences
+Ribp_ref <- paste(echo_consensus_Ribp_ref,collapse="")
+ref <- DNAString(Ribp_ref)
+ref_AA <- translate(ref)
+
+# Reference DNA sequences by protein
+ref_VP4 <- DNAString(paste(echo_consensus_Ribp_ref[(752-45):(958-45)],collapse=""))
+ref_VP2 <- DNAString(paste(echo_consensus_Ribp_ref[(959-45):(1744-45)],collapse=""))
+ref_VP3 <- DNAString(paste(echo_consensus_Ribp_ref[(1745-45):(2458-45)],collapse=""))
+ref_VP1 <- DNAString(paste(echo_consensus_Ribp_ref[(2459-45):(3334-45)],collapse=""))
+ref_2A <- DNAString(paste(echo_consensus_Ribp_ref[(3335-45):(3784-45)],collapse=""))
+ref_2B <- DNAString(paste(echo_consensus_Ribp_ref[(3785-45):(4081-45)],collapse=""))
+ref_2C_1 <- DNAString(paste(echo_consensus_Ribp_ref[(4082-45):(4867-45)],collapse="")) # missing data (4868:4886)
+ref_2C_2 <- DNAString(paste(echo_consensus_Ribp_ref[(4886-61):(5068-61)],collapse=""))
+ref_3A <- DNAString(paste(echo_consensus_Ribp_ref[(5069-61):(5335-61)],collapse=""))
+ref_3B <- DNAString(paste(echo_consensus_Ribp_ref[(5336-61):(5401-61)],collapse=""))
+ref_3C <- DNAString(paste(echo_consensus_Ribp_ref[(5402-61):(5950-61)],collapse=""))
+ref_3D <- DNAString(paste(echo_consensus_Ribp_ref[(5951-61):(7336-61)],collapse=""))
+
+# Test DNA and AA sequences
+Ribp_test <- paste(echo_consensus_Ribp_test,collapse="")
+test <- DNAString(Ribp_test)
+test_AA <- translate(test)
+
+# Test DNA sequences by protein
+test_VP4 <- DNAString(paste(echo_consensus_Ribp_test[(752-45):(958-45)],collapse=""))
+test_VP2 <- DNAString(paste(echo_consensus_Ribp_test[(959-45):(1744-45)],collapse=""))
+test_VP3 <- DNAString(paste(echo_consensus_Ribp_test[(1745-45):(2458-45)],collapse=""))
+test_VP1 <- DNAString(paste(echo_consensus_Ribp_test[(2459-45):(3334-45)],collapse=""))
+test_2A <- DNAString(paste(echo_consensus_Ribp_test[(3335-45):(3784-45)],collapse=""))
+test_2B <- DNAString(paste(echo_consensus_Ribp_test[(3785-45):(4081-45)],collapse=""))
+test_2C_1 <- DNAString(paste(echo_consensus_Ribp_test[(4082-45):(4867-45)],collapse="")) # missing data (4868:4886)
+test_2C_2 <- DNAString(paste(echo_consensus_Ribp_test[(4886-61):(5068-61)],collapse=""))
+test_3A <- DNAString(paste(echo_consensus_Ribp_test[(5069-61):(5335-61)],collapse=""))
+test_3B <- DNAString(paste(echo_consensus_Ribp_test[(5336-61):(5401-61)],collapse=""))
+test_3C <- DNAString(paste(echo_consensus_Ribp_test[(5402-61):(5950-61)],collapse=""))
+test_3D <- DNAString(paste(echo_consensus_Ribp_test[(5951-61):(7336-61)],collapse=""))
+```
+
+## Step 6: SNP and AA alignments using Bioconductor
+```{r}
+## Nucleotide aligment
+mat = nucleotideSubstitutionMatrix(match = 1, mismatch = -3, baseOnly = TRUE)
+globalAlign = pairwiseAlignment(ref, test, substitutionMatrix = mat)
+# Total alignment information
+nmatch(globalAlign)
+nmismatch(globalAlign)
+
+nmismatch(pairwiseAlignment(ref_VP4, test_VP4, substitutionMatrix = mat))
+nmismatch(pairwiseAlignment(ref_VP2, test_VP2, substitutionMatrix = mat))
+nmismatch(pairwiseAlignment(ref_VP3, test_VP3, substitutionMatrix = mat))
+nmismatch(pairwiseAlignment(ref_VP1, test_VP1, substitutionMatrix = mat))
+nmismatch(pairwiseAlignment(ref_2A, test_2A, substitutionMatrix = mat))
+nmismatch(pairwiseAlignment(ref_2B, test_2B, substitutionMatrix = mat))
+#nmismatch(pairwiseAlignment(ref_2C, test_2C, substitutionMatrix = mat))
+nmismatch(pairwiseAlignment(ref_2C_1, test_2C_1, substitutionMatrix = mat))
+nmismatch(pairwiseAlignment(ref_2C_2, test_2C_2, substitutionMatrix = mat))
+nmismatch(pairwiseAlignment(ref_3A, test_3A, substitutionMatrix = mat))
+nmismatch(pairwiseAlignment(ref_3B, test_3B, substitutionMatrix = mat))
+nmismatch(pairwiseAlignment(ref_3C, test_3C, substitutionMatrix = mat))
+nmismatch(pairwiseAlignment(ref_3D, test_3D, substitutionMatrix = mat))
+
+## Amino acid global alignment
+AAAlign <- pairwiseAlignment(ref_AA, test_AA, substitutionMatrix = "BLOSUM50")
+# alignment info
+nmatch(AAAlign)
+nmismatch(AAAlign)
+
+nmismatch(pairwiseAlignment(translate(ref_VP4), translate(test_VP4), substitutionMatrix = "BLOSUM50"))
+nmismatch(pairwiseAlignment(translate(ref_VP2), translate(test_VP2), substitutionMatrix = "BLOSUM50"))
+nmismatch(pairwiseAlignment(translate(ref_VP3), translate(test_VP3), substitutionMatrix = "BLOSUM50"))
+nmismatch(pairwiseAlignment(translate(ref_VP1), translate(test_VP1), substitutionMatrix = "BLOSUM50"))
+nmismatch(pairwiseAlignment(translate(ref_2A), translate(test_2A), substitutionMatrix = "BLOSUM50"))
+nmismatch(pairwiseAlignment(translate(ref_2B), translate(test_2B), substitutionMatrix = "BLOSUM50"))
+#nmismatch(pairwiseAlignment(translate(ref_2C), translate(test_2C), substitutionMatrix = "BLOSUM50"))
+nmismatch(pairwiseAlignment(translate(ref_2C_1), translate(test_2C_1), substitutionMatrix = "BLOSUM50"))
+nmismatch(pairwiseAlignment(translate(ref_2C_2), translate(test_2C_2), substitutionMatrix = "BLOSUM50"))
+nmismatch(pairwiseAlignment(translate(ref_3A), translate(test_3A), substitutionMatrix = "BLOSUM50"))
+nmismatch(pairwiseAlignment(translate(ref_3B), translate(test_3B), substitutionMatrix = "BLOSUM50"))
+nmismatch(pairwiseAlignment(translate(ref_3C), translate(test_3C), substitutionMatrix = "BLOSUM50"))
+nmismatch(pairwiseAlignment(translate(ref_3D), translate(test_3D), substitutionMatrix = "BLOSUM50"))
+```
+
+## Step 7: calculate expected number of nonsyn and syn sites in the reference sequence
+```{r}
+ref_AA_VP4 <- translate(ref_VP4)
+ref_AA_VP2 <- translate(ref_VP2)
+ref_AA_VP3 <- translate(ref_VP3)
+ref_AA_VP1 <- translate(ref_VP1)
+ref_AA_2A <- translate(ref_2A)
+ref_AA_2B <- translate(ref_2B)
+#ref_AA_2C <- translate(ref_2C)
+ref_AA_2C_1 <- translate(ref_2C_1)
+ref_AA_2C_2 <- translate(ref_2C_2)
+ref_AA_3A <- translate(ref_3A)
+ref_AA_3B <- translate(ref_3B)
+ref_AA_3C <- translate(ref_3C)
+ref_AA_3D <- translate(ref_3D)
+
+protein_no_N <- c()
+protein_no_S <- c()
+
+AA <- ref_AA_VP4 # any protein here
+no_N = 0
+for(aa in 1:length(AA)){
+  if(AA[aa]==AAString("M") | AA[aa]==AAString("W")){ no_N = no_N+3 }
+  else if(AA[aa]==AAString("S")){ no_N = no_N+(4/3) }
+  else if(AA[aa]==AAString("I") | AA[aa]==AAString("*")){ no_N = no_N+(7/3) }
+  else if(AA[aa]==AAString("L") | AA[aa]==AAString("R")){ no_N = no_N+(5/3) }
+  else if(AA[aa]==AAString("V") | AA[aa]==AAString("A") | AA[aa]==AAString("G") | AA[aa]==AAString("P") | AA[aa]==AAString("T")){ no_N = no_N+2 }
+  else { no_N = no_N+(8/3) }
+  no_S = length(AA)*3 - no_N
+}
+
+protein_no_N <- c(protein_no_N,no_N)
+protein_no_S <- c(protein_no_S,no_S)
+cat("no_N: ",no_N)
+cat("no_S: ",no_S)
+```

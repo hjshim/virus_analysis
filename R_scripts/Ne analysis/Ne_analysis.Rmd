@@ -1,0 +1,261 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+## Step 1: import allele frequency data
+```{r}
+file_name = "Ribp_UVp" # or "Ribp_UVm"
+dat <- read.csv(paste(file_name,".csv",sep=""),header=TRUE)
+
+# check coverage
+for (i in 1:10){
+  coverage <- dat[,(i*6)]
+  print(below_cov <- which(coverage<100))
+}
+# time sampled
+t=7
+```
+
+## Step 2: check for candidate trajectories (minor alleles at first sampling switches to major alleles at last sampling)
+```{r}
+# check major allele at first sampling
+max_first <- pmax(dat$P0_A,dat$P0_C,dat$P0_G,dat$P0_T,na.rm=TRUE)
+major_A <- which(dat$P0_A == max_first)
+major_C <- which(dat$P0_C == max_first)
+major_G <- which(dat$P0_G == max_first)
+major_T <- which(dat$P0_T == max_first)
+# check major allele at last sampling (is defined as minor allele if switch happens)
+max_last <- pmax(dat$P20_A,dat$P20_C,dat$P20_G,dat$P20_T,na.rm=TRUE)
+minor_A <- which(dat$P20_A == max_last)
+minor_C <- which(dat$P20_C == max_last)
+minor_G <- which(dat$P20_G == max_last)
+minor_T <- which(dat$P20_T == max_last)
+
+# check length
+length(dat[,1])
+length(major_A)+length(major_C)+length(major_G)+length(major_T)
+length(minor_A)+length(minor_C)+length(minor_G)+length(minor_T)
+
+# create data with only major and minor alleles (biallelic model)
+new_dat <- data.frame()
+colnames(dat)[41] # 7*6-1
+seq=1:7
+# Major
+Ma_A <- as.matrix(cbind(rep("A",length(major_A)),dat[major_A,seq*6-4]))
+Ma_C <- as.matrix(cbind(rep("C",length(major_C)),dat[major_C,seq*6-3]))
+Ma_G <- as.matrix(cbind(rep("G",length(major_G)),dat[major_G,seq*6-2]))
+Ma_T <- as.matrix(cbind(rep("T",length(major_T)),dat[major_T,seq*6-1]))
+colnames(Ma_A) <- NULL
+colnames(Ma_C) <- NULL
+colnames(Ma_G) <- NULL
+colnames(Ma_T) <- NULL
+new_dat <- rbind(Ma_A,Ma_C,Ma_G,Ma_T)
+new_dat_Ma <- new_dat[order(as.numeric(rownames(new_dat))),]
+# Minor
+Mi_A <- as.matrix(cbind(rep("A",length(minor_A)),dat[minor_A,seq*6-4]))
+Mi_C <- as.matrix(cbind(rep("C",length(minor_C)),dat[minor_C,seq*6-3]))
+Mi_G <- as.matrix(cbind(rep("G",length(minor_G)),dat[minor_G,seq*6-2]))
+Mi_T <- as.matrix(cbind(rep("T",length(minor_T)),dat[minor_T,seq*6-1]))
+colnames(Mi_A) <- NULL
+colnames(Mi_C) <- NULL
+colnames(Mi_G) <- NULL
+colnames(Mi_T) <- NULL
+new_dat <- rbind(Mi_A,Mi_C,Mi_G,Mi_T)
+new_dat_Mi <- new_dat[order(as.numeric(rownames(new_dat))),] # index in terms of matrix length (not position)
+
+# candidate trajectories -> minor allele becomes major
+final_dat <- cbind(dat$Position,new_dat_Ma,new_dat_Mi)
+final_dat[which(final_dat[,2]!=final_dat[,10]),]
+can_traj <- final_dat[which(final_dat[,2]!=final_dat[,10]),-(2:9)]
+matplot(t(can_traj[,3:9]),type="b",pch=1,col=1:dim(can_traj)[1],ylab="frequency",xlab="sample time points")
+legend("bottomright",legend=final_dat[which(final_dat[,2]!=final_dat[,10]),1],pch=1,col=1:dim(can_traj)[1])
+```
+
+## Step 3: generate WFABC input files with minor alleles above sequencing error (at least one sampling above sequencing error)
+```{r}
+# rounding to 0.5% sequencing error (sample size = 100)
+final_dat_wfabc_se <- matrix(nrow=length(dat[,1]),ncol=t+2)
+# second max at last sampling if major =! minor
+for(i in 1:length(dat[,1])){
+  if(final_dat[i,2]!=final_dat[i,10]){
+    max_last_order <- order(c(dat[i,]$P20_A,dat[i,]$P20_C,dat[i,]$P20_G,dat[i,]$P20_T),decreasing=TRUE)[1] #  max at last sampling
+    if(max_last_order==1){
+      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"A",round(dat[i,seq*6-4],digits=1)))
+    } else if(max_last_order==2){
+      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"C",round(dat[i,seq*6-3],digits=1)))
+    } else if(max_last_order==3){
+      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"G",round(dat[i,seq*6-2],digits=1)))
+    } else if(max_last_order==4){
+      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"T",round(dat[i,seq*6-1],digits=1)))
+    } 
+  } else {
+    max_last_order <- order(c(dat[i,]$P20_A,dat[i,]$P20_C,dat[i,]$P20_G,dat[i,]$P20_T),decreasing=TRUE)[2] # second max at last sampling
+    if(max_last_order==1){
+      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"A",round(dat[i,seq*6-4],digits=1)))
+    } else if(max_last_order==2){
+      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"C",round(dat[i,seq*6-3],digits=1)))
+    } else if(max_last_order==3){
+      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"G",round(dat[i,seq*6-2],digits=1)))
+    } else if(max_last_order==4){
+      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"T",round(dat[i,seq*6-1],digits=1)))
+    } 
+  }
+}
+
+# generate WFABC input file
+file_output=paste(file_name,"_minor_minfreq.txt",sep="") 
+min_freq <- final_dat_wfabc_se[,3:9]
+class(min_freq) <- "numeric"
+max_traj <- apply(min_freq,1,max)
+final_dat_wfabc_se_minfreq <- final_dat_wfabc_se[which(max_traj>0.4),]
+cat(dim(final_dat_wfabc_se_minfreq)[1],dim(final_dat_wfabc_se_minfreq)[2]-2,"\n",sep=" ",file=file_output) ## no.loci   sampling tps
+cat(1,52,73,104,155,186,207,"\n",sep=",",file=file_output,append=TRUE)  ## sampling tps in generation
+for(i in 1:dim(final_dat_wfabc_se_minfreq)[1]){
+  cat(rep(100,7),"\n",sep=",",file=file_output,append=TRUE)
+  cat(final_dat_wfabc_se_minfreq[i,3:(dim(final_dat_wfabc_se_minfreq)[2])],"\n",sep=",",file=file_output,append=TRUE)
+}
+```
+
+## Step 4: generate time-serial WFABC input files
+```{r}
+for (passage in 1:length(final_dat_wfabc_se_minfreq[1,-c(1,2,3)])){
+  file_output=paste(passage,".txt",sep="") 
+  min_freq <- final_dat_wfabc_se[,3:9]
+  class(min_freq) <- "numeric"
+  max_traj <- apply(min_freq,1,max)
+  final_dat_wfabc_se_minfreq <- final_dat_wfabc_se[which(max_traj>0.4),]
+  cat(dim(final_dat_wfabc_se_minfreq)[1],2,"\n",sep=" ",file=file_output) ## no.loci   sampling tps
+  cat(1,52,"\n",sep=",",file=file_output,append=TRUE)  ## sampling tps in generation
+  for(i in 1:dim(final_dat_wfabc_se_minfreq)[1]){
+    cat(rep(100,2),"\n",sep=",",file=file_output,append=TRUE)
+    cat(final_dat_wfabc_se_minfreq[i,(2+passage):(3+passage)],"\n",sep=",",file=file_output,append=TRUE)
+  }
+}
+```
+
+## Step 5: generate by-protein WFABC input files
+```{r}
+# generate WFABC input file
+protein <- c("VP4","VP2","VP3","VP1","2A","2B","2C","3A","3B","3C","3D")
+file_output=paste("Ne_",protein,".txt",sep="") 
+min_freq <- final_dat_wfabc_se[,3:9]
+class(min_freq) <- "numeric"
+max_traj <- apply(min_freq,1,max)
+final_dat_wfabc_se_minfreq <- final_dat_wfabc_se[which(max_traj>0.4),]
+
+# count nucleotide belonging to a protein
+protein_no <- rep(0,11)
+for(i in 1:dim(final_dat_wfabc_se_minfreq)[1]){
+  if((as.numeric(final_dat_wfabc_se_minfreq[i,1])>=752) && (as.numeric(final_dat_wfabc_se_minfreq[i,1])<959)){
+    protein_no[1]=protein_no[1]+1
+  } else if((as.numeric(final_dat_wfabc_se_minfreq[i,1])>=959) && (as.numeric(final_dat_wfabc_se_minfreq[i,1])<1745)){
+    protein_no[2]=protein_no[2]+1
+  } else if((as.numeric(final_dat_wfabc_se_minfreq[i,1])>=1745) && (as.numeric(final_dat_wfabc_se_minfreq[i,1])<2459)){
+    protein_no[3]=protein_no[3]+1
+  } else if((as.numeric(final_dat_wfabc_se_minfreq[i,1])>=2459) && (as.numeric(final_dat_wfabc_se_minfreq[i,1])<3335)){
+    protein_no[4]=protein_no[4]+1
+  } else if((as.numeric(final_dat_wfabc_se_minfreq[i,1])>=3335) && (as.numeric(final_dat_wfabc_se_minfreq[i,1])<3785)){
+    protein_no[5]=protein_no[5]+1
+  } else if((as.numeric(final_dat_wfabc_se_minfreq[i,1])>=3785) && (as.numeric(final_dat_wfabc_se_minfreq[i,1])<4082)){
+    protein_no[6]=protein_no[6]+1
+  } else if((as.numeric(final_dat_wfabc_se_minfreq[i,1])>=4082) && (as.numeric(final_dat_wfabc_se_minfreq[i,1])<5069)){
+    protein_no[7]=protein_no[7]+1
+  } else if((as.numeric(final_dat_wfabc_se_minfreq[i,1])>=5069) && (as.numeric(final_dat_wfabc_se_minfreq[i,1])<5336)){
+    protein_no[8]=protein_no[8]+1
+  } else if((as.numeric(final_dat_wfabc_se_minfreq[i,1])>=5336) && (as.numeric(final_dat_wfabc_se_minfreq[i,1])<5402)){
+    protein_no[9]=protein_no[9]+1
+  } else if((as.numeric(final_dat_wfabc_se_minfreq[i,1])>=5402) && (as.numeric(final_dat_wfabc_se_minfreq[i,1])<5951)){
+    protein_no[10]=protein_no[10]+1
+  } else if((as.numeric(final_dat_wfabc_se_minfreq[i,1])>=5951) && (as.numeric(final_dat_wfabc_se_minfreq[i,1])<7336)){
+    protein_no[11]=protein_no[11]+1
+  }
+}
+
+for (i in 1:length(protein)){
+  cat(protein_no[i],dim(final_dat_wfabc_se_minfreq)[2]-2,"\n",sep=" ",file=file_output[i]) ## no.loci   sampling tps
+  cat(1,52,73,104,155,186,207,"\n",sep=",",file=file_output[i],append=TRUE)  ## sampling tps in generation
+}
+
+# create files by protein
+for(i in 1:dim(final_dat_wfabc_se_minfreq)[1]){
+  if((as.numeric(final_dat_wfabc_se_minfreq[i,1])>=752) && (as.numeric(final_dat_wfabc_se_minfreq[i,1])<959)){
+    cat(rep(100,7),"\n",sep=",",file=file_output[1],append=TRUE)
+    cat(final_dat_wfabc_se_minfreq[i,3:(dim(final_dat_wfabc_se_minfreq)[2])],"\n",sep=",",file=file_output[1],append=TRUE)
+  } else if((as.numeric(final_dat_wfabc_se_minfreq[i,1])>=959) && (as.numeric(final_dat_wfabc_se_minfreq[i,1])<1745)){
+    cat(rep(100,7),"\n",sep=",",file=file_output[2],append=TRUE)
+    cat(final_dat_wfabc_se_minfreq[i,3:(dim(final_dat_wfabc_se_minfreq)[2])],"\n",sep=",",file=file_output[2],append=TRUE)
+  } else if((as.numeric(final_dat_wfabc_se_minfreq[i,1])>=1745) && (as.numeric(final_dat_wfabc_se_minfreq[i,1])<2459)){
+    cat(rep(100,7),"\n",sep=",",file=file_output[3],append=TRUE)
+    cat(final_dat_wfabc_se_minfreq[i,3:(dim(final_dat_wfabc_se_minfreq)[2])],"\n",sep=",",file=file_output[3],append=TRUE)
+  } else if((as.numeric(final_dat_wfabc_se_minfreq[i,1])>=2459) && (as.numeric(final_dat_wfabc_se_minfreq[i,1])<3335)){
+    cat(rep(100,7),"\n",sep=",",file=file_output[4],append=TRUE)
+    cat(final_dat_wfabc_se_minfreq[i,3:(dim(final_dat_wfabc_se_minfreq)[2])],"\n",sep=",",file=file_output[4],append=TRUE)
+  } else if((as.numeric(final_dat_wfabc_se_minfreq[i,1])>=3335) && (as.numeric(final_dat_wfabc_se_minfreq[i,1])<3785)){
+    cat(rep(100,7),"\n",sep=",",file=file_output[5],append=TRUE)
+    cat(final_dat_wfabc_se_minfreq[i,3:(dim(final_dat_wfabc_se_minfreq)[2])],"\n",sep=",",file=file_output[5],append=TRUE)
+  } else if((as.numeric(final_dat_wfabc_se_minfreq[i,1])>=3785) && (as.numeric(final_dat_wfabc_se_minfreq[i,1])<4082)){
+    cat(rep(100,7),"\n",sep=",",file=file_output[6],append=TRUE)
+    cat(final_dat_wfabc_se_minfreq[i,3:(dim(final_dat_wfabc_se_minfreq)[2])],"\n",sep=",",file=file_output[6],append=TRUE)
+  } else if((as.numeric(final_dat_wfabc_se_minfreq[i,1])>=4082) && (as.numeric(final_dat_wfabc_se_minfreq[i,1])<5069)){
+    cat(rep(100,7),"\n",sep=",",file=file_output[7],append=TRUE)
+    cat(final_dat_wfabc_se_minfreq[i,3:(dim(final_dat_wfabc_se_minfreq)[2])],"\n",sep=",",file=file_output[7],append=TRUE)
+  } else if((as.numeric(final_dat_wfabc_se_minfreq[i,1])>=5069) && (as.numeric(final_dat_wfabc_se_minfreq[i,1])<5336)){
+    cat(rep(100,7),"\n",sep=",",file=file_output[8],append=TRUE)
+    cat(final_dat_wfabc_se_minfreq[i,3:(dim(final_dat_wfabc_se_minfreq)[2])],"\n",sep=",",file=file_output[8],append=TRUE)
+  } else if((as.numeric(final_dat_wfabc_se_minfreq[i,1])>=5336) && (as.numeric(final_dat_wfabc_se_minfreq[i,1])<5402)){
+    cat(rep(100,7),"\n",sep=",",file=file_output[9],append=TRUE)
+    cat(final_dat_wfabc_se_minfreq[i,3:(dim(final_dat_wfabc_se_minfreq)[2])],"\n",sep=",",file=file_output[9],append=TRUE)
+  } else if((as.numeric(final_dat_wfabc_se_minfreq[i,1])>=5402) && (as.numeric(final_dat_wfabc_se_minfreq[i,1])<5951)){
+    cat(rep(100,7),"\n",sep=",",file=file_output[10],append=TRUE)
+    cat(final_dat_wfabc_se_minfreq[i,3:(dim(final_dat_wfabc_se_minfreq)[2])],"\n",sep=",",file=file_output[10],append=TRUE)
+  } else if((as.numeric(final_dat_wfabc_se_minfreq[i,1])>=5951) && (as.numeric(final_dat_wfabc_se_minfreq[i,1])<7336)){
+    cat(rep(100,7),"\n",sep=",",file=file_output[11],append=TRUE)
+    cat(final_dat_wfabc_se_minfreq[i,3:(dim(final_dat_wfabc_se_minfreq)[2])],"\n",sep=",",file=file_output[11],append=TRUE)
+  }
+}
+```
+
+## Step 6: run WFABC input files on WFABC_v1.1 with following commands
+```{bash}
+# download WFABC at http://jensenlab.epfl.ch/page-86730-en.html
+# make WFABC input files available and command in terminal
+./wfabc_1 FILE –min_freq 0.005 –ploidy 1
+```
+
+## Step 7: generate Ne graphs
+```{r}
+## generate time-serial Ne graph
+for (i in 1:length(final_dat_wfabc_se_minfreq[1,-c(1,2,3)])){
+  bootstrap <- read.table(paste("Ne_",i,"_Ne_bootstrap.txt",sep=""),sep=",",header=TRUE)
+  assign(paste("dat_",i,sep=""),bootstrap)
+  print(summary(bootstrap))
+}
+
+boxplot(c(dat_1,dat_2,dat_3,dat_4,dat_5,dat_6),ylim=c(1,10000),names=c("0-5","5-7","7-10","10-15","15-18","18-20"))
+
+dat <- data.frame(dat_1,dat_2,dat_3,dat_4,dat_5,dat_6)
+colnames(dat) <- c("0-5","5-7","7-10","10-15","15-18","18-20")
+
+summ <- summary(dat)
+dat_median <- c(695.1, 1053.2, 3095, 3999, 2844, 2740)
+dat_1st_quan <- c(669.9, 964.1, 2742, 3419, 2555, 2426)
+dat_3rd_quan <- c(722.4, 1157.6, 3535, 4751, 3191, 3131)
+
+plot(dat_median,type="o",col="red",ylim=c(0,5000),ylab="Ne",xlab="passages",lwd=3,xaxt="n")
+axis(1,at=1:6,labels=c("0-5","5-7","7-10","10-15","15-18","18-20"))
+lines(dat_1st_quan,type="l", lty=2)
+lines(dat_3rd_quan,type="l", lty=2)
+
+## generate by-protein Ne graph
+for (i in 1:length(protein)){
+  bootstrap <- read.table(paste("Ne_",protein[i],"_Ne_bootstrap.txt",sep=""))
+  assign(paste("dat_",i,sep=""),bootstrap)
+}
+boxplot(c(dat_1,dat_2,dat_3,dat_4,dat_5,dat_6,dat_7,dat_8,dat_9,dat_10,dat_11),names=protein,ylab="Ne",xlab="protein",ylim=c(0,4000),col=cm.colors(11))
+```
+

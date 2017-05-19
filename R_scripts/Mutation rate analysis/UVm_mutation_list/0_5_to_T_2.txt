@@ -1,0 +1,93 @@
+########################################
+# Program: Biostrings (version 2.40.2), a Bioconductor package
+# Rundate: Thu Apr 27 18:11:33 2017
+########################################
+#=======================================
+#
+# Aligned_sequences: 2
+# 1: P1
+# 2: S1
+# Matrix: NA
+# Gap_penalty: 14.0
+# Extend_penalty: 4.0
+#
+# Length: 817
+# Identity:     816/817 (99.9%)
+# Similarity:    NA/817 (NA%)
+# Gaps:           0/817 (0.0%)
+# Score: 5508
+#
+#
+#=======================================
+
+P1                 1 CDEECCPVNFKRCCPLVCGKAIQFIDRRTQVRYSLDMLVTEMFREYNHRH     50
+                     ||||||||||||||||||||||||||||||||||||||||||||||||||
+S1                 1 CDEECCPVNFKRCCPLVCGKAIQFIDRRTQVRYSLDMLVTEMFREYNHRH     50
+
+P1                51 SVGATLEALFQGPPIYREIKISVAPETPPPPAIADLLKSVDSEAVREYCK    100
+                     ||||||||||||||||||||||||||||||||||||||||||||||||||
+S1                51 SVGATLEALFQGPPIYREIKISVAPETPPPPAIADLLKSVDSEAVREYCK    100
+
+P1               101 EKGWLVPEVNSTLQIEKHVSRAFICLQALTTFVSVAGIIYIIYKLFAGFQ    150
+                     ||||||||||||||||||||||||||||||||||||||||||||||||||
+S1               101 EKGWLVPEVNSTLQIEKHVSRAFICLQALTTFVSVAGIIYIIYKLFAGFQ    150
+
+P1               151 GAYTGMPNQKPKVPTLRQAKVQGPAFEFAVAMMKRNSSTVKTEYGEFTML    200
+                     ||||||||||||||||||||||||||||||||||||||||||||||||||
+S1               151 GAYTGMPNQKPKVPTLRQAKVQGPAFEFAVAMMKRNSSTVKTEYGEFTML    200
+
+P1               201 GIYDRWAVLPRHAKPGPTILMNDQEVGVLDAKELVDKDGTNLELTLLKLN    250
+                     ||||||||||||||||||||||||||||||||||||||||||||||||||
+S1               201 GIYDRWAVLPRHAKPGPTILMNDQEVGVLDAKELVDKDGTNLELTLLKLN    250
+
+P1               251 RNEKFRDIRGFLAKEEVEANEAVLAINTSKFPNMYIPVGQVTDYGFLNLG    300
+                     |||||||||||||||||| |||||||||||||||||||||||||||||||
+S1               251 RNEKFRDIRGFLAKEEVEVNEAVLAINTSKFPNMYIPVGQVTDYGFLNLG    300
+
+P1               301 GTPTKRMLMYNFPTRAGQCGGVLMSTGKVLGIHVGGNGHQGFSAALLKHY    350
+                     ||||||||||||||||||||||||||||||||||||||||||||||||||
+S1               301 GTPTKRMLMYNFPTRAGQCGGVLMSTGKVLGIHVGGNGHQGFSAALLKHY    350
+
+P1               351 FNDEQGEIEFIESSKDAGFPIINTPSKTKLEPSVFHQVFEGDKEPAVLRN    400
+                     ||||||||||||||||||||||||||||||||||||||||||||||||||
+S1               351 FNDEQGEIEFIESSKDAGFPIINTPSKTKLEPSVFHQVFEGDKEPAVLRN    400
+
+P1               401 GDPRLKANFEEAIFSKYIGNVNTHVDEYMLEAVDHYAGQLATLDISTEPM    450
+                     ||||||||||||||||||||||||||||||||||||||||||||||||||
+S1               401 GDPRLKANFEEAIFSKYIGNVNTHVDEYMLEAVDHYAGQLATLDISTEPM    450
+
+P1               451 RLEDAVYGTEGLEALDLTTSAGYPYVALGIKKRDILSRRTRDLTKLKECM    500
+                     ||||||||||||||||||||||||||||||||||||||||||||||||||
+S1               451 RLEDAVYGTEGLEALDLTTSAGYPYVALGIKKRDILSRRTRDLTKLKECM    500
+
+P1               501 DKYGLNLPMVTYVKDELRSADKVAKGKSRLIEASSLNDSVAMRQTFGNLY    550
+                     ||||||||||||||||||||||||||||||||||||||||||||||||||
+S1               501 DKYGLNLPMVTYVKDELRSADKVAKGKSRLIEASSLNDSVAMRQTFGNLY    550
+
+P1               551 RTFHLNPGIVTGSAVGCDPDLFWSKIPVMLDGHLIAFDYSGYDASLSPVW    600
+                     ||||||||||||||||||||||||||||||||||||||||||||||||||
+S1               551 RTFHLNPGIVTGSAVGCDPDLFWSKIPVMLDGHLIAFDYSGYDASLSPVW    600
+
+P1               601 FACLKLLLEKLGYTHKETNYIDYLCNSHHLYRDKHYFVRGGMPSGCSGTS    650
+                     ||||||||||||||||||||||||||||||||||||||||||||||||||
+S1               601 FACLKLLLEKLGYTHKETNYIDYLCNSHHLYRDKHYFVRGGMPSGCSGTS    650
+
+P1               651 IFNSMINNIIIRTLMLKVYKGIDLDQFRMIAYGDDVIASYPWPIDASLLA    700
+                     ||||||||||||||||||||||||||||||||||||||||||||||||||
+S1               651 IFNSMINNIIIRTLMLKVYKGIDLDQFRMIAYGDDVIASYPWPIDASLLA    700
+
+P1               701 ETGKGYGLIMTPADKGECFNEVTWTNVTFLKRYFRADEQYPFLVHPVMPM    750
+                     ||||||||||||||||||||||||||||||||||||||||||||||||||
+S1               701 ETGKGYGLIMTPADKGECFNEVTWTNVTFLKRYFRADEQYPFLVHPVMPM    750
+
+P1               751 KDIHESIRWTKDPKNTQDHVRSLCLLAWHNGEHEYEEFIRKIRSVPVGRC    800
+                     ||||||||||||||||||||||||||||||||||||||||||||||||||
+S1               751 KDIHESIRWTKDPKNTQDHVRSLCLLAWHNGEHEYEEFIRKIRSVPVGRC    800
+
+P1               801 LTLPAFSTLRRKWLDSF    817
+                     |||||||||||||||||
+S1               801 LTLPAFSTLRRKWLDSF    817
+
+
+#---------------------------------------
+#---------------------------------------
