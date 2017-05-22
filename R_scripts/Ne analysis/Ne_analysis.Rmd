@@ -78,31 +78,31 @@ legend("bottomright",legend=final_dat[which(final_dat[,2]!=final_dat[,10]),1],pc
 
 ## Step 3: generate WFABC input files with minor alleles above sequencing error (at least one sampling above sequencing error)
 ```{r}
-# rounding to 0.5% sequencing error (sample size = 100)
+# sample size = 100
 final_dat_wfabc_se <- matrix(nrow=length(dat[,1]),ncol=t+2)
 # second max at last sampling if major =! minor
 for(i in 1:length(dat[,1])){
   if(final_dat[i,2]!=final_dat[i,10]){
     max_last_order <- order(c(dat[i,]$P20_A,dat[i,]$P20_C,dat[i,]$P20_G,dat[i,]$P20_T),decreasing=TRUE)[1] #  max at last sampling
     if(max_last_order==1){
-      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"A",round(dat[i,seq*6-4],digits=1)))
+      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"A",round(dat[i,seq*6-4],digits=2)))
     } else if(max_last_order==2){
-      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"C",round(dat[i,seq*6-3],digits=1)))
+      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"C",round(dat[i,seq*6-3],digits=2)))
     } else if(max_last_order==3){
-      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"G",round(dat[i,seq*6-2],digits=1)))
+      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"G",round(dat[i,seq*6-2],digits=2)))
     } else if(max_last_order==4){
-      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"T",round(dat[i,seq*6-1],digits=1)))
+      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"T",round(dat[i,seq*6-1],digits=2)))
     } 
   } else {
     max_last_order <- order(c(dat[i,]$P20_A,dat[i,]$P20_C,dat[i,]$P20_G,dat[i,]$P20_T),decreasing=TRUE)[2] # second max at last sampling
     if(max_last_order==1){
-      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"A",round(dat[i,seq*6-4],digits=1)))
+      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"A",round(dat[i,seq*6-4],digits=2)))
     } else if(max_last_order==2){
-      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"C",round(dat[i,seq*6-3],digits=1)))
+      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"C",round(dat[i,seq*6-3],digits=2)))
     } else if(max_last_order==3){
-      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"G",round(dat[i,seq*6-2],digits=1)))
+      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"G",round(dat[i,seq*6-2],digits=2)))
     } else if(max_last_order==4){
-      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"T",round(dat[i,seq*6-1],digits=1)))
+      final_dat_wfabc_se[i,] <- as.matrix(cbind(dat[i,]$Position,"T",round(dat[i,seq*6-1],digits=2)))
     } 
   }
 }
@@ -112,7 +112,7 @@ file_output=paste(file_name,"_minor_minfreq.txt",sep="")
 min_freq <- final_dat_wfabc_se[,3:9]
 class(min_freq) <- "numeric"
 max_traj <- apply(min_freq,1,max)
-final_dat_wfabc_se_minfreq <- final_dat_wfabc_se[which(max_traj>0.4),]
+final_dat_wfabc_se_minfreq <- final_dat_wfabc_se[which(max_traj>=0),]
 cat(dim(final_dat_wfabc_se_minfreq)[1],dim(final_dat_wfabc_se_minfreq)[2]-2,"\n",sep=" ",file=file_output) ## no.loci   sampling tps
 cat(1,52,73,104,155,186,207,"\n",sep=",",file=file_output,append=TRUE)  ## sampling tps in generation
 for(i in 1:dim(final_dat_wfabc_se_minfreq)[1]){
@@ -128,7 +128,7 @@ for (passage in 1:length(final_dat_wfabc_se_minfreq[1,-c(1,2,3)])){
   min_freq <- final_dat_wfabc_se[,3:9]
   class(min_freq) <- "numeric"
   max_traj <- apply(min_freq,1,max)
-  final_dat_wfabc_se_minfreq <- final_dat_wfabc_se[which(max_traj>0.4),]
+  final_dat_wfabc_se_minfreq <- final_dat_wfabc_se[which(max_traj>=0),]
   cat(dim(final_dat_wfabc_se_minfreq)[1],2,"\n",sep=" ",file=file_output) ## no.loci   sampling tps
   cat(1,52,"\n",sep=",",file=file_output,append=TRUE)  ## sampling tps in generation
   for(i in 1:dim(final_dat_wfabc_se_minfreq)[1]){
@@ -146,7 +146,7 @@ file_output=paste("Ne_",protein,".txt",sep="")
 min_freq <- final_dat_wfabc_se[,3:9]
 class(min_freq) <- "numeric"
 max_traj <- apply(min_freq,1,max)
-final_dat_wfabc_se_minfreq <- final_dat_wfabc_se[which(max_traj>0.4),]
+final_dat_wfabc_se_minfreq <- final_dat_wfabc_se[which(max_traj>=0),]
 
 # count nucleotide belonging to a protein
 protein_no <- rep(0,11)
@@ -242,20 +242,21 @@ dat <- data.frame(dat_1,dat_2,dat_3,dat_4,dat_5,dat_6)
 colnames(dat) <- c("0-5","5-7","7-10","10-15","15-18","18-20")
 
 summ <- summary(dat)
-dat_median <- c(695.1, 1053.2, 3095, 3999, 2844, 2740)
-dat_1st_quan <- c(669.9, 964.1, 2742, 3419, 2555, 2426)
-dat_3rd_quan <- c(722.4, 1157.6, 3535, 4751, 3191, 3131)
+dat_median <- c(107.0, 180.6, 163.5, 172.0, 173.8, 175.0) # c(695.1, 1053.2, 3095, 3999, 2844, 2740)
+dat_1st_quan <- c(106.1, 178.8, 162.2, 170.2, 172.6, 173.8) # c(669.9, 964.1, 2742, 3419, 2555, 2426)
+dat_3rd_quan <- c(107.8, 182.2, 164.8, 173.8, 175.0, 176.3) # c(722.4, 1157.6, 3535, 4751, 3191, 3131)
 
-plot(dat_median,type="o",col="red",ylim=c(0,5000),ylab="Ne",xlab="passages",lwd=3,xaxt="n")
+plot(dat_median,type="o",col="green",ylim=c(0,300),ylab="Ne",xlab="passages",lwd=3,xaxt="n")
 axis(1,at=1:6,labels=c("0-5","5-7","7-10","10-15","15-18","18-20"))
 lines(dat_1st_quan,type="l", lty=2)
 lines(dat_3rd_quan,type="l", lty=2)
 
 ## generate by-protein Ne graph
+protein <- c("VP4","VP2","VP3","VP1","2A","2B","2C","3A","3B","3C","3D")
 for (i in 1:length(protein)){
   bootstrap <- read.table(paste("Ne_",protein[i],"_Ne_bootstrap.txt",sep=""))
   assign(paste("dat_",i,sep=""),bootstrap)
 }
-boxplot(c(dat_1,dat_2,dat_3,dat_4,dat_5,dat_6,dat_7,dat_8,dat_9,dat_10,dat_11),names=protein,ylab="Ne",xlab="protein",ylim=c(0,4000),col=cm.colors(11))
+boxplot(c(dat_1,dat_2,dat_3,dat_4,dat_5,dat_6,dat_7,dat_8,dat_9,dat_10,dat_11),names=protein,ylab="Ne",xlab="protein",ylim=c(0,200),col=cm.colors(11))
 ```
 
