@@ -2,10 +2,11 @@
 
 ### What is this repository for? ###
 
-Virus Analysis for mutiple time-point whole-genome NGS experimental evolution data
-- Time-serial mutation rate analysis
-- Time-serial effective population size analysis
-- Time-serial selection analysis
+# Virus Analysis 
+	For mutiple time-point whole-genome NGS experimental evolution data
+	* Time-serial mutation rate analysis
+	* Time-serial effective population size analysis
+	* Time-serial selection analysis
 
 
 ### Contribution guidelines ###
